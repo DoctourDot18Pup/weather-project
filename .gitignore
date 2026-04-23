@@ -3,6 +3,11 @@
 .env
 .env.backup
 .env.production
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/node_modules
+frontend/dist
 .phpactor.json
 .phpunit.result.cache
 /.codex
