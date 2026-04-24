@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
+import { FiGithub, FiLogOut } from 'react-icons/fi'
+import { FcGoogle } from 'react-icons/fc'
 import SearchBar      from './components/SearchBar'
 import WeatherCard    from './components/WeatherCard'
 import ExtraStats     from './components/ExtraStats'
@@ -11,6 +13,7 @@ import WeatherAlerts  from './components/WeatherAlerts'
 import HistoryStats   from './components/HistoryStats'
 import WeatherMap     from './components/WeatherMap'
 import { useUnit }    from './context/UnitContext'
+import { useAuth }    from './context/AuthContext'
 import { useFavorites } from './hooks/useFavorites'
 import { inferAlerts } from './utils/weatherHelpers'
 import {
@@ -27,6 +30,7 @@ function readCityFromUrl() {
 
 export default function App() {
   const { unit, toggleUnit } = useUnit()
+  const { user, login, logout } = useAuth()
   const { favorites, toggleFavorite, removeFavorite, isFavorite } = useFavorites()
 
   const [weather, setWeather]               = useState(null)
@@ -113,15 +117,58 @@ export default function App() {
 
       {/* ── Header ── */}
       <header className="border-b border-neutral-900 sticky top-0 bg-black z-10">
-        <div className={`${WRAP} py-5 flex items-center justify-between`}>
-          <h1 className="text-sm font-medium text-white tracking-tight">Weather Dashboard</h1>
-          <button
-            onClick={toggleUnit}
-            className="text-xs text-neutral-600 hover:text-white border border-neutral-800 hover:border-neutral-600 px-3 py-1 rounded transition-colors tabular-nums"
-            title={`Cambiar a °${unit === 'C' ? 'F' : 'C'}`}
-          >
-            °{unit} → °{unit === 'C' ? 'F' : 'C'}
-          </button>
+        <div className={`${WRAP} py-4 flex items-center justify-between gap-4`}>
+          <h1 className="text-sm font-medium text-white tracking-tight flex-shrink-0">Weather Dashboard</h1>
+
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Toggle °C / °F */}
+            <button
+              onClick={toggleUnit}
+              className="text-xs text-neutral-600 hover:text-white border border-neutral-800 hover:border-neutral-600 px-3 py-1 rounded transition-colors tabular-nums"
+              title={`Cambiar a °${unit === 'C' ? 'F' : 'C'}`}
+            >
+              °{unit} → °{unit === 'C' ? 'F' : 'C'}
+            </button>
+
+            {/* Auth */}
+            {user ? (
+              <div className="flex items-center gap-2 border-l border-neutral-900 pl-3">
+                {user.avatar && (
+                  <img src={user.avatar} alt={user.name}
+                    className="w-6 h-6 rounded-full flex-shrink-0 opacity-80" />
+                )}
+                <span className="text-xs text-neutral-500 hidden sm:block max-w-[120px] truncate">
+                  {user.name}
+                </span>
+                <button
+                  onClick={logout}
+                  title="Cerrar sesión"
+                  className="p-1.5 text-neutral-700 hover:text-white transition-colors"
+                >
+                  <FiLogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 border-l border-neutral-900 pl-3">
+                <button
+                  onClick={() => login('google')}
+                  title="Iniciar sesión con Google"
+                  className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-white border border-neutral-800 hover:border-neutral-600 px-2.5 py-1 rounded transition-colors"
+                >
+                  <FcGoogle className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Google</span>
+                </button>
+                <button
+                  onClick={() => login('github')}
+                  title="Iniciar sesión con GitHub"
+                  className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-white border border-neutral-800 hover:border-neutral-600 px-2.5 py-1 rounded transition-colors"
+                >
+                  <FiGithub className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">GitHub</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

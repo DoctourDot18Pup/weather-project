@@ -1,11 +1,20 @@
 import axios from 'axios'
 
+const TOKEN_KEY = 'wdash_token'
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
+})
+
+// Inyectar token Bearer en cada petición si existe
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
 })
 
 export const getWeather = (city) =>
@@ -31,3 +40,5 @@ export const geocodeCity = (q) =>
 
 export const getWeatherStats = () =>
   api.get('/weather-stats')
+
+export default api

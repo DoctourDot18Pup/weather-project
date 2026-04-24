@@ -19,25 +19,27 @@ class WeatherService
 
     // ── Puntos de entrada públicos ─────────────────────────────────────────
 
-    public function getWeather(string $city): array
+    public function getWeather(string $city, ?int $userId = null): array
     {
         return $this->resolve(
             cacheKey: 'weather:city:' . $this->slug($city),
             fetcher:  fn() => $this->callApis(q: $city),
+            userId:   $userId,
         );
     }
 
-    public function getWeatherByCoords(float $lat, float $lon): array
+    public function getWeatherByCoords(float $lat, float $lon, ?int $userId = null): array
     {
         return $this->resolve(
             cacheKey: "weather:coords:{$lat},{$lon}",
             fetcher:  fn() => $this->callApis(lat: $lat, lon: $lon),
+            userId:   $userId,
         );
     }
 
     // ── Núcleo ────────────────────────────────────────────────────────────
 
-    private function resolve(string $cacheKey, callable $fetcher): array
+    private function resolve(string $cacheKey, callable $fetcher, ?int $userId = null): array
     {
         try {
             // Intentar caché primero (10 min TTL)
@@ -53,7 +55,7 @@ class WeatherService
                 Cache::put($cacheKey, $raw, now()->addMinutes(10));
             }
 
-            $dbData = $this->buildDbData($raw);
+            $dbData = $this->buildDbData($raw, $userId);
             WeatherSearch::create($dbData);
 
             return ['success' => true, 'data' => $this->buildResponse($dbData, $raw)];
@@ -131,11 +133,12 @@ class WeatherService
 
     // ── Construcción de datos ─────────────────────────────────────────────
 
-    private function buildDbData(array $raw): array
+    private function buildDbData(array $raw, ?int $userId = null): array
     {
         $c = $raw['current'];
 
         return [
+            'user_id'             => $userId,
             'city'                => $c['name'],
             'country'             => $c['sys']['country']          ?? null,
             'lat'                 => $c['coord']['lat'],

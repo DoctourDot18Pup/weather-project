@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class WeatherSearch extends Model
 {
     protected $fillable = [
+        'user_id',
         'city', 'country', 'lat', 'lon', 'timezone_offset',
         'temperature', 'feels_like', 'temp_min', 'temp_max',
         'weather_main', 'weather_description', 'icon',

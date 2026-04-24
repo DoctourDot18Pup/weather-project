@@ -24,7 +24,7 @@ class WeatherController extends Controller
             return response()->json(['message' => 'Solo letras, espacios y guiones'], 400);
         }
 
-        $result = $this->weatherService->getWeather($city);
+        $result = $this->weatherService->getWeather($city, auth()->id());
 
         return $result['success']
             ? response()->json($result['data'])
@@ -46,7 +46,7 @@ class WeatherController extends Controller
             return response()->json(['message' => 'Coordenadas fuera de rango'], 400);
         }
 
-        $result = $this->weatherService->getWeatherByCoords($lat, $lon);
+        $result = $this->weatherService->getWeatherByCoords($lat, $lon, auth()->id());
 
         return $result['success']
             ? response()->json($result['data'])
@@ -84,27 +84,26 @@ class WeatherController extends Controller
 
     public function getStats()
     {
-        $total = WeatherSearch::count();
+        $query = $this->scopedQuery();
+        $total = $query->count();
 
         if ($total === 0) return response()->json(['total' => 0]);
 
-        $mostSearched = WeatherSearch::select('city', DB::raw('count(*) as searches'))
-            ->groupBy('city')
-            ->orderByDesc('searches')
-            ->first();
+        $mostSearched = (clone $query)
+            ->select('city', DB::raw('count(*) as searches'))
+            ->groupBy('city')->orderByDesc('searches')->first();
 
-        $conditions = WeatherSearch::select('weather_main', DB::raw('count(*) as total'))
-            ->groupBy('weather_main')
-            ->orderByDesc('total')
-            ->get()
+        $conditions = (clone $query)
+            ->select('weather_main', DB::raw('count(*) as total'))
+            ->groupBy('weather_main')->orderByDesc('total')->get()
             ->map(fn($r) => ['label' => $r->weather_main, 'count' => (int) $r->total]);
 
         return response()->json([
             'total'         => $total,
             'most_searched' => ['city' => $mostSearched->city, 'count' => (int) $mostSearched->searches],
-            'avg_temp'      => round(WeatherSearch::avg('temperature'), 1),
-            'min_temp'      => round(WeatherSearch::min('temperature'), 1),
-            'max_temp'      => round(WeatherSearch::max('temperature'), 1),
+            'avg_temp'      => round((clone $query)->avg('temperature'), 1),
+            'min_temp'      => round((clone $query)->min('temperature'), 1),
+            'max_temp'      => round((clone $query)->max('temperature'), 1),
             'conditions'    => $conditions,
         ]);
     }
@@ -113,7 +112,8 @@ class WeatherController extends Controller
 
     public function getHistory()
     {
-        $p = WeatherSearch::select(['id','city','country','temperature','weather_main','weather_description','icon','aqi','created_at'])
+        $p = $this->scopedQuery()
+            ->select(['id','city','country','temperature','weather_main','weather_description','icon','aqi','created_at'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
@@ -145,7 +145,7 @@ class WeatherController extends Controller
 
     public function deleteHistory(int $id)
     {
-        $s = WeatherSearch::find($id);
+        $s = $this->scopedQuery()->find($id);
         if (!$s) return response()->json(['message' => 'No encontrado'], 404);
         $s->delete();
         return response()->json(['message' => 'Eliminado']);
@@ -153,7 +153,18 @@ class WeatherController extends Controller
 
     public function clearHistory()
     {
-        WeatherSearch::truncate();
+        $this->scopedQuery()->delete();
         return response()->json(['message' => 'Historial eliminado']);
+    }
+
+    // ── Helper: filtra por usuario si está autenticado ─────────────────────
+
+    private function scopedQuery()
+    {
+        $userId = auth('sanctum')->id();
+
+        return $userId
+            ? WeatherSearch::where('user_id', $userId)
+            : WeatherSearch::query();
     }
 }
